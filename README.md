@@ -2,6 +2,8 @@
 
 Claude Code lifecycle hooks that show per-window status indicators in your tmux tab bar.
 
+![tmux window titles showing Claude state indicators](screenshots/tmux-window-titles.jpeg)
+
 Each tmux window running Claude gets a small prefix glyph that updates in real time:
 
 | State | Prefix | Color | When |
@@ -11,6 +13,10 @@ Each tmux window running Claude gets a small prefix glyph that updates in real t
 | permission | `!` | red | Claude needs approval to run a command |
 | done | `✓` | green | Claude finished (no question asked) |
 | *(idle)* | — | dim | No active Claude session |
+
+On macOS, you also get desktop notifications:
+
+![macOS notification for permission request](screenshots/notification.jpeg)
 
 Works via [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) — no polling, no background processes.
 
