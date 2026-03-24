@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-HOOKS_DEST="$HOME/.claude/hooks"
-SETTINGS="$HOME/.claude/settings.json"
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+HOOKS_DEST="$CLAUDE_DIR/hooks"
+SETTINGS="$CLAUDE_DIR/settings.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 GREEN='\033[0;32m'
@@ -41,17 +42,19 @@ done
 
 bold "\n2. Configuring Claude Code settings"
 
-read -r -d '' HOOKS_FRAGMENT << 'EOF'
-{
-  "hooks": {
-    "SessionStart":     [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/reset-window.sh"}]}],
-    "Notification":     [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/notify.sh"}]}],
-    "Stop":             [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/notify.sh"}]}],
-    "PreToolUse":       [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/busy-window.sh"}]}],
-    "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/busy-window.sh"}]}]
-  }
-}
-EOF
+HOOKS_FRAGMENT=$(jq -n \
+    --arg reset  "bash $HOOKS_DEST/reset-window.sh" \
+    --arg notify "bash $HOOKS_DEST/notify.sh" \
+    --arg busy   "bash $HOOKS_DEST/busy-window.sh" \
+    '{
+      hooks: {
+        SessionStart:     [{"matcher": "", hooks: [{"type": "command", command: $reset}]}],
+        Notification:     [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
+        Stop:             [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
+        PreToolUse:       [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
+        UserPromptSubmit: [{"matcher": "", hooks: [{"type": "command", command: $busy}]}]
+      }
+    }')
 
 if [ ! -f "$SETTINGS" ]; then
     mkdir -p "$(dirname "$SETTINGS")"
