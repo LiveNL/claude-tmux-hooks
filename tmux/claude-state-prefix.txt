@@ -1,0 +1,14 @@
+# claude-tmux-hooks: state prefix fragment
+#
+# Use this if you already have a custom window-status-format and want to
+# embed the Claude indicator into it rather than replacing your format.
+#
+# Paste this at the START of your window-status-format string, before
+# your existing content. Do the same for window-status-current-format.
+#
+# Example:
+#   setw -g window-status-format "PREFIX_HERE #I #W#F"
+#
+# Replace #[fg=cyan], #[fg=yellow], etc. with your theme's colors.
+
+#{?#{==:#{@claude-state},running},#[fg=cyan]#[bold]· ,#{?#{==:#{@claude-state},input},#[fg=yellow]#[nobold]? ,#{?#{==:#{@claude-state},permission},#[fg=red]#[bold]! ,#{?#{==:#{@claude-state},done},#[fg=green]#[nobold]✓ , }}}}
