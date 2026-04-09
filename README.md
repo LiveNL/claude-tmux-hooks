@@ -26,7 +26,7 @@ Works via [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hoo
 - [jq](https://stedolan.github.io/jq/)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
 
-macOS desktop notifications are supported automatically via `osascript`. On other platforms they are silently skipped.
+macOS desktop notifications work automatically via `osascript`. On other platforms they are silently skipped.
 
 ## Install
 
@@ -36,49 +36,45 @@ cd claude-tmux-hooks
 bash install.sh
 ```
 
-The installer:
-1. Copies the three hook scripts to `~/.claude/hooks/`
-2. Merges the hook configuration into `~/.claude/settings.json` (backs up first, preserves existing hooks)
-3. Prints instructions for the tmux step below
+The installer copies the hook scripts to `~/.claude/hooks/` and merges the hook configuration into `~/.claude/settings.json` (backs up first, preserves existing hooks).
 
 ## tmux setup
 
-The installer prints this, but for reference — add one of these to your `~/.tmux.conf`:
+Add one of these to your `~/.tmux.conf`, then reload with `tmux source-file ~/.tmux.conf`.
 
-**Option A — standalone format** (replaces `window-status-format`):
+**Option A — standalone** (replaces `window-status-format`):
 ```tmux
 source-file /path/to/claude-tmux-hooks/tmux/claude-state.conf
 ```
 
-**Option B — embed in your existing format** (if you have a custom theme):
-Prepend the `#{?...}` fragment from `tmux/claude-state-prefix.txt` to the start of your existing `window-status-format` and `window-status-current-format` strings.
+**Option B — embed in existing format** (if you have a custom theme):
+Prepend the `#{?...}` fragment from `tmux/claude-state-prefix.txt` to your existing `window-status-format` and `window-status-current-format` strings.
 
-Then reload: `tmux source-file ~/.tmux.conf`
+## Customization
+
+**Colors:** Edit `tmux/claude-state.conf` and replace the named colors (`cyan`, `yellow`, `red`, `green`) with hex values or tmux color names that match your theme.
+
+**Disable macOS notifications:** Set `CAN_NOTIFY="0"` at the top of `hooks/notify.sh`, or remove the `notify_macos` calls entirely.
+
+**Linux notifications:** Replace `notify_macos` in `hooks/notify.sh` with a call to `notify-send` or `paplay`.
+
+## Uninstall
+
+```bash
+rm ~/.claude/hooks/busy-window.sh ~/.claude/hooks/notify.sh ~/.claude/hooks/permission-window.sh ~/.claude/hooks/reset-window.sh
+```
+
+Then remove the hooks block from `~/.claude/settings.json` and the `source-file` line from `~/.tmux.conf`.
 
 ## How it works
 
 Claude Code fires hook scripts on lifecycle events. Each hook updates a per-window tmux option (`@claude-state`), which the `window-status-format` string reads to render the prefix glyph.
 
 ```
-UserPromptSubmit / PreToolUse  →  busy-window.sh   →  @claude-state = "running"
-Stop / Notification            →  notify.sh         →  @claude-state = "input" | "done" | "permission"
-SessionStart                   →  reset-window.sh   →  @claude-state = ""
+UserPromptSubmit / PreToolUse  →  busy-window.sh      →  @claude-state = "running"
+PermissionRequest              →  permission-window.sh →  @claude-state = "permission"
+Stop / Notification            →  notify.sh            →  @claude-state = "input" | "done" | "permission"
+SessionStart                   →  reset-window.sh      →  @claude-state = ""
 ```
 
 The `@claude-state` option is window-scoped, so each tmux window tracks its own Claude session independently.
-
-## Customization
-
-**Colors:** Edit `tmux/claude-state.conf` and replace the named colors (`cyan`, `yellow`, `red`, `green`) with hex values or tmux color names that match your theme. See `tmux/claude-state-prefix.txt` for the raw format string.
-
-**Disable macOS notifications:** Remove or comment out the `notify_macos` calls in `hooks/notify.sh`, or set `CAN_NOTIFY="0"` at the top of the file.
-
-**Add a notification sound on Linux:** Replace `notify_macos` with a call to `notify-send` or `paplay`.
-
-## Uninstall
-
-```bash
-rm ~/.claude/hooks/busy-window.sh ~/.claude/hooks/notify.sh ~/.claude/hooks/reset-window.sh
-```
-
-Then remove the hooks block from `~/.claude/settings.json` (the five event entries added by the installer) and remove the `source-file` line from `~/.tmux.conf`.

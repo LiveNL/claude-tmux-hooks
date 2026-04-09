@@ -32,7 +32,7 @@ done
 bold "1. Installing hooks"
 mkdir -p "$HOOKS_DEST"
 
-for hook in busy-window.sh notify.sh reset-window.sh; do
+for hook in busy-window.sh notify.sh permission-window.sh reset-window.sh; do
     cp "$SCRIPT_DIR/hooks/$hook" "$HOOKS_DEST/$hook"
     chmod +x "$HOOKS_DEST/$hook"
     ok "Installed $HOOKS_DEST/$hook"
@@ -43,16 +43,18 @@ done
 bold "\n2. Configuring Claude Code settings"
 
 HOOKS_FRAGMENT=$(jq -n \
-    --arg reset  "bash $HOOKS_DEST/reset-window.sh" \
-    --arg notify "bash $HOOKS_DEST/notify.sh" \
-    --arg busy   "bash $HOOKS_DEST/busy-window.sh" \
+    --arg reset      "bash $HOOKS_DEST/reset-window.sh" \
+    --arg notify     "bash $HOOKS_DEST/notify.sh" \
+    --arg busy       "bash $HOOKS_DEST/busy-window.sh" \
+    --arg permission "bash $HOOKS_DEST/permission-window.sh" \
     '{
       hooks: {
-        SessionStart:     [{"matcher": "", hooks: [{"type": "command", command: $reset}]}],
-        Notification:     [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
-        Stop:             [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
-        PreToolUse:       [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
-        UserPromptSubmit: [{"matcher": "", hooks: [{"type": "command", command: $busy}]}]
+        SessionStart:      [{"matcher": "", hooks: [{"type": "command", command: $reset}]}],
+        Notification:      [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
+        Stop:              [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
+        PreToolUse:        [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
+        UserPromptSubmit:  [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
+        PermissionRequest: [{"matcher": "", hooks: [{"type": "command", command: $permission}]}]
       }
     }')
 

@@ -51,7 +51,6 @@ if [ "$EVENT" = "Stop" ]; then
     fi
 elif [ "$EVENT" = "Notification" ]; then
     if echo "$MESSAGE" | grep -qi "permission"; then
-        set_state "permission"
         CMD=$(echo "$MESSAGE" | sed 's/.*run: //' | head -c 80)
         notify_macos "🔑 Approval needed" "${CMD:-Needs your approval}" "Sosumi"
     else
