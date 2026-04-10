@@ -67,15 +67,16 @@ else
     cp "$SETTINGS" "$BACKUP"
     info "Backed up existing settings to $(basename "$BACKUP")"
 
-    # Additive merge: for each hook event, append our entries and deduplicate
-    # by command string. Existing hooks are preserved.
+    # Additive merge: for each hook event, put our entries first then existing,
+    # deduplicate by script filename so ~/... and /abs/path/... variants of the
+    # same script are treated as the same entry (our absolute-path version wins).
     MERGED=$(jq \
         --argjson new "$HOOKS_FRAGMENT" '
         reduce ($new.hooks | keys[]) as $event (
             .;
             .hooks[$event] = (
-                ((.hooks[$event] // []) + $new.hooks[$event])
-                | unique_by(.hooks[0].command)
+                ($new.hooks[$event] + (.hooks[$event] // []))
+                | unique_by(.hooks[0].command | split(" ") | last | split("/") | last)
             )
         )
         ' "$SETTINGS")
@@ -87,8 +88,13 @@ fi
 # ── Step 3: tmux instructions ──────────────────────────────────────────────
 
 echo ""
-bold "3. Configure tmux (manual step)"
-cat << TMUX
+bold "3. Configure tmux"
+
+TMUX_CONF="${HOME}/.tmux.conf"
+if [ -f "$TMUX_CONF" ] && grep -q '@claude-state' "$TMUX_CONF"; then
+    ok "tmux already configured (found @claude-state in $TMUX_CONF)"
+else
+    cat << TMUX
 
   Add one of the following to your ~/.tmux.conf, then reload:
   tmux source-file ~/.tmux.conf
@@ -105,6 +111,7 @@ cat << TMUX
     cat $SCRIPT_DIR/tmux/claude-state-prefix.txt
 
 TMUX
+fi
 
 bold "Done."
 echo ""
