@@ -32,7 +32,7 @@ done
 bold "1. Installing hooks"
 mkdir -p "$HOOKS_DEST"
 
-for hook in busy-window.sh notify.sh permission-window.sh reset-window.sh spinner.sh; do
+for hook in busy-window.sh continue-window.sh notify.sh permission-window.sh reset-window.sh spinner.sh; do
     cp "$SCRIPT_DIR/hooks/$hook" "$HOOKS_DEST/$hook"
     chmod +x "$HOOKS_DEST/$hook"
     ok "Installed $HOOKS_DEST/$hook"
@@ -46,6 +46,7 @@ HOOKS_FRAGMENT=$(jq -n \
     --arg reset      "bash $HOOKS_DEST/reset-window.sh" \
     --arg notify     "bash $HOOKS_DEST/notify.sh" \
     --arg busy       "bash $HOOKS_DEST/busy-window.sh" \
+    --arg continue   "bash $HOOKS_DEST/continue-window.sh" \
     --arg permission "bash $HOOKS_DEST/permission-window.sh" \
     '{
       hooks: {
@@ -53,7 +54,7 @@ HOOKS_FRAGMENT=$(jq -n \
         Notification:      [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
         Stop:              [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
         PreToolUse:        [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
-        PostToolUse:       [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
+        PostToolUse:       [{"matcher": "", hooks: [{"type": "command", command: $continue}]}],
         UserPromptSubmit:  [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
         PermissionRequest: [{"matcher": "", hooks: [{"type": "command", command: $permission}]}]
       }
@@ -92,25 +93,22 @@ echo ""
 bold "3. Configure tmux"
 
 TMUX_CONF="${HOME}/.tmux.conf"
+SPINNER_FORMAT='#{@claude-spinner}'
+
 if [ -f "$TMUX_CONF" ] && grep -q '@claude-state' "$TMUX_CONF"; then
-    if grep -q 'spinner.sh' "$TMUX_CONF"; then
+    if grep -q '@claude-spinner' "$TMUX_CONF"; then
         ok "tmux already configured"
     else
-        # Patch static · glyph to use the animated spinner
-        SPINNER_CALL="#(bash $HOOKS_DEST/spinner.sh)"
         tmp=$(mktemp)
-        sed "s|]· |]${SPINNER_CALL} |g" "$TMUX_CONF" > "$tmp" \
-            && mv "$tmp" "$TMUX_CONF"
-
-        # Ensure status-interval 1 for smooth animation
-        if grep -q 'status-interval' "$TMUX_CONF"; then
-            tmp=$(mktemp)
-            sed 's/set -g status-interval [0-9][0-9]*/set -g status-interval 1/' "$TMUX_CONF" > "$tmp" \
+        if grep -q 'spinner\.sh' "$TMUX_CONF"; then
+            # Upgrade from spinner.sh to background loop format
+            sed "s|#(bash[^)]*spinner\.sh)|${SPINNER_FORMAT}|g" "$TMUX_CONF" > "$tmp" \
                 && mv "$tmp" "$TMUX_CONF"
         else
-            echo 'set -g status-interval 1' >> "$TMUX_CONF"
+            # Fresh: replace static · glyph
+            sed "s|]· |]${SPINNER_FORMAT} |g" "$TMUX_CONF" > "$tmp" \
+                && mv "$tmp" "$TMUX_CONF"
         fi
-
         ok "Updated $TMUX_CONF with animated spinner"
         info "Reload tmux: tmux source-file $TMUX_CONF"
     fi
