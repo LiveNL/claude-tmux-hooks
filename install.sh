@@ -53,6 +53,7 @@ HOOKS_FRAGMENT=$(jq -n \
         Notification:      [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
         Stop:              [{"matcher": "", hooks: [{"type": "command", command: $notify}]}],
         PreToolUse:        [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
+        PostToolUse:       [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
         UserPromptSubmit:  [{"matcher": "", hooks: [{"type": "command", command: $busy}]}],
         PermissionRequest: [{"matcher": "", hooks: [{"type": "command", command: $permission}]}]
       }
