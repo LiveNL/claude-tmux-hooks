@@ -36,6 +36,12 @@ notify_macos() {
     osascript -e "display notification \"$(echo "$msg" | head -c 100)\" with title \"$title\" subtitle \"$SUBTITLE\" sound name \"$sound\""
 }
 
+if [ -z "$EVENT" ]; then
+    # Could not parse hook input — reset to idle to avoid stuck state
+    set_state ""
+    exit 0
+fi
+
 if [ "$EVENT" = "Stop" ]; then
     PREVIEW=$(echo "$LAST_MSG" | tr '\n' ' ' | tail -c 120)
     if echo "$LAST_MSG" | grep -q '?$'; then

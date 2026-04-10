@@ -32,7 +32,7 @@ done
 bold "1. Installing hooks"
 mkdir -p "$HOOKS_DEST"
 
-for hook in busy-window.sh notify.sh permission-window.sh reset-window.sh; do
+for hook in busy-window.sh notify.sh permission-window.sh reset-window.sh spinner.sh; do
     cp "$SCRIPT_DIR/hooks/$hook" "$HOOKS_DEST/$hook"
     chmod +x "$HOOKS_DEST/$hook"
     ok "Installed $HOOKS_DEST/$hook"
@@ -92,7 +92,27 @@ bold "3. Configure tmux"
 
 TMUX_CONF="${HOME}/.tmux.conf"
 if [ -f "$TMUX_CONF" ] && grep -q '@claude-state' "$TMUX_CONF"; then
-    ok "tmux already configured (found @claude-state in $TMUX_CONF)"
+    if grep -q 'spinner.sh' "$TMUX_CONF"; then
+        ok "tmux already configured"
+    else
+        # Patch static · glyph to use the animated spinner
+        SPINNER_CALL="#(bash $HOOKS_DEST/spinner.sh)"
+        tmp=$(mktemp)
+        sed "s|]· |]${SPINNER_CALL} |g" "$TMUX_CONF" > "$tmp" \
+            && mv "$tmp" "$TMUX_CONF"
+
+        # Ensure status-interval 1 for smooth animation
+        if grep -q 'status-interval' "$TMUX_CONF"; then
+            tmp=$(mktemp)
+            sed 's/set -g status-interval [0-9][0-9]*/set -g status-interval 1/' "$TMUX_CONF" > "$tmp" \
+                && mv "$tmp" "$TMUX_CONF"
+        else
+            echo 'set -g status-interval 1' >> "$TMUX_CONF"
+        fi
+
+        ok "Updated $TMUX_CONF with animated spinner"
+        info "Reload tmux: tmux source-file $TMUX_CONF"
+    fi
 else
     cat << TMUX
 
