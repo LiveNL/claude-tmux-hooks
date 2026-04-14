@@ -11,4 +11,4 @@
 #
 # Replace #[fg=cyan], #[fg=yellow], etc. with your theme's colors.
 
-#{?#{==:#{@claude-state},running},#[fg=cyan]#[bold]#{@claude-spinner} ,#{?#{==:#{@claude-state},input},#[fg=yellow]#[nobold]? ,#{?#{==:#{@claude-state},permission},#[fg=red]#[bold]! ,#{?#{==:#{@claude-state},done},#[fg=green]#[nobold]✓ , }}}}#[default]#[nobold]
+#{?#{==:#{@claude-state},running},#[fg=cyan]#[bold]#{@claude-spinner} ,#{?#{==:#{@claude-state},input},#[fg=yellow]#[nobold]? ,#{?#{==:#{@claude-state},permission},#[fg=red]#[bold]! ,#{?#{==:#{@claude-state},done},#[fg=green]#[nobold]✓ , }}}}#[default]#[nobold]#[fg=colour244]

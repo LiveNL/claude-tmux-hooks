@@ -49,6 +49,10 @@ notify_macos() {
     osascript -e "display notification \"$msg\" with title \"$title\" subtitle \"$SUBTITLE\" sound name \"$sound\""
 }
 
+if [ -n "$TMUX" ] && [ "${DEBUG_CLAUDE_HOOKS:-0}" = "1" ]; then
+    echo "$(date '+%H:%M:%S') event=$EVENT state=$(tmux display-message -t "$TMUX_PANE" -p '#{@claude-state}' 2>/dev/null) msg=${MESSAGE:-$LAST_MSG}" >> /tmp/claude-notify.log
+fi
+
 if [ -z "$EVENT" ]; then
     # Could not parse hook input — reset to idle to avoid stuck state
     set_state ""
@@ -73,7 +77,10 @@ elif [ "$EVENT" = "Notification" ]; then
         CMD=$(echo "$MESSAGE" | sed 's/.*run: //' | head -c 80)
         notify_macos "🔑 Approval needed" "${CMD:-Needs your approval}" "Sosumi"
     else
-        set_state "input"
+        CURRENT_STATE=$(tmux display-message -t "$TMUX_PANE" -p '#{@claude-state}' 2>/dev/null)
+        if [ "$CURRENT_STATE" != "done" ] && [ "$CURRENT_STATE" != "input" ]; then
+            set_state "input"
+        fi
         if [ "$IS_ACTIVE" != "1" ]; then
             notify_macos "💬 Input needed" "${MESSAGE:-Claude needs your attention}" "Pop"
         fi
