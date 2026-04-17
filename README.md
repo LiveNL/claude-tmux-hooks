@@ -20,9 +20,10 @@ Open five Claude sessions in five windows. Each tab tracks its own state, live:
 ![input](screenshots/state-input.png)
 ![done](screenshots/state-done.png)
 
-On macOS you also get desktop notifications via `osascript`:
+On macOS you also get desktop notifications:
 
-![macOS notification for permission request](screenshots/notification.jpeg)
+![Permission notification](screenshots/notification-permission.png)
+![Input notification](screenshots/notification-input.png)
 
 **No polling. No cron. No background daemons.** State changes are triggered by [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) at the exact moment each lifecycle event fires.
 
