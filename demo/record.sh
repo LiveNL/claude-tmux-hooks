@@ -160,8 +160,10 @@ set_win "claude-hooks" "" ""; set_win "frontend" "" ""; set_win "api-server" "" 
 printf 'file %s\nduration 0.1\n' "$FRAMES/$(printf '%04d' $N).png" >> "$CONCAT"
 
 # ── 4a. Per-state screenshots for README ─────────────────────────────────────
-# Neutral context: api-server=done, everything else idle, claude-hooks=each state
-set_win "api-server" "done" ""; set_win "payments" "" ""; set_win "auth" "" ""; set_win "frontend" "" ""
+# Kill all windows except claude-hooks so each screenshot shows only that one tab
+for win in api-server payments auth frontend; do
+    tmux kill-window -t "${SESSION}:${win}" 2>/dev/null || true
+done
 
 snap() {
     local name="$1"
