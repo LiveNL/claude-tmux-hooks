@@ -14,6 +14,12 @@ Open five Claude sessions in five windows. Each tab tracks its own state, live:
 | done | `✓` | green | Claude finished without a question |
 | *(idle)* | — | dim | No active Claude session |
 
+![idle](screenshots/state-idle.png)
+![running](screenshots/state-running.png)
+![permission](screenshots/state-permission.png)
+![input](screenshots/state-input.png)
+![done](screenshots/state-done.png)
+
 On macOS you also get desktop notifications via `osascript`:
 
 ![macOS notification for permission request](screenshots/notification.jpeg)

@@ -22,19 +22,20 @@ tmux new-window      -t "$SESSION" -n "payments"
 tmux new-window      -t "$SESSION" -n "auth"
 tmux new-window      -t "$SESSION" -n "frontend"
 
-# Status bar: match the Nightfox style
-tmux set-option  -g -t "$SESSION" status-bg         "#0f1c1e"
-tmux set-option  -g -t "$SESSION" status-fg         "#5a93aa"
-tmux set-option  -g -t "$SESSION" status-left       "#[fg=#2f3239,bg=#5a93aa,bold] demo #[fg=#5a93aa,bg=#0f1c1e,nobold] "
-# Use session-specific (not global) overrides to avoid conflicting with
-# global window-option status-right in ~/.tmux.conf
-tmux set-option  -t "$SESSION" status-right        "#[fg=#0f1c1e,bg=#0f1c1e] "
-tmux set-option  -t "$SESSION" status-right-length 2
-tmux set-option  -t "$SESSION" status-right-style  "bg=#0f1c1e,fg=#0f1c1e"
-tmux set-option  -g -t "$SESSION" window-status-separator ""
+# Session-scoped options — no -g so they die with the session, don't bleed into other sessions
+tmux set-option -t "$SESSION" status-bg    "#0f1c1e"
+tmux set-option -t "$SESSION" status-fg    "#5a93aa"
+tmux set-option -t "$SESSION" status-left  "#[fg=#2f3239,bg=#5a93aa,bold] demo #[fg=#5a93aa,bg=#0f1c1e,nobold] "
+tmux set-option -t "$SESSION" status-right        "#[fg=#0f1c1e,bg=#0f1c1e] "
+tmux set-option -t "$SESSION" status-right-length 2
+tmux set-option -t "$SESSION" status-right-style  "bg=#0f1c1e,fg=#0f1c1e"
 
-tmux set-window-option -g -t "$SESSION" window-status-format         "$FMT"
-tmux set-window-option -g -t "$SESSION" window-status-current-format "$FMT_CURRENT"
+# Window-scoped options set per window — no -g so global format strings are never touched
+for win in claude-hooks api-server payments auth frontend; do
+    tmux set-window-option -t "${SESSION}:${win}" window-status-separator    ""
+    tmux set-window-option -t "${SESSION}:${win}" window-status-format         "$FMT"
+    tmux set-window-option -t "${SESSION}:${win}" window-status-current-format "$FMT_CURRENT"
+done
 
 # Pre-set state on other windows so the bar shows variety from the start
 tmux set-option -w -t "${SESSION}:api-server" @claude-state "done"

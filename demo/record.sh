@@ -3,7 +3,7 @@
 # Run from the repo root: bash demo/record.sh
 #
 # Requires: ffmpeg  (brew install ffmpeg)
-# Uses:     screencapture + python3 (built-in macOS, no extra installs)
+# Uses:     screencapture + swift (built-in macOS, no extra installs)
 
 set -euo pipefail
 
@@ -13,10 +13,12 @@ ALACRITTY_CFG="$FRAMES/alacritty.toml"
 OUT="$REPO/screenshots/demo.gif"
 SESSION=vhsdemo
 COLS=140
-ROWS=3
+ROWS=5
 
 cleanup() {
     tmux kill-session -t "$SESSION" 2>/dev/null || true
+    # Restore global tmux config in case any option leaked
+    tmux source "$HOME/.tmux.conf" 2>/dev/null || true
     rm -rf "$FRAMES"
 }
 trap cleanup EXIT
@@ -35,7 +37,6 @@ sleep 0.3
 bash "$REPO/demo/setup.sh" "$COLS" "$ROWS"
 
 # ── 2. Open a minimal Alacritty window and attach ────────────────────────────
-# Temp config: no decorations, minimal size. Does not touch your real config.
 cat > "$ALACRITTY_CFG" << 'TOML'
 [window]
 decorations = "None"
@@ -95,6 +96,10 @@ CONCAT="$FRAMES/concat.txt"
 : > "$CONCAT"
 N=0
 
+# Crop to the status bar: bottom row of a 5-line window (bottom 1/5 of height)
+CROP="crop=iw:ih/5:0:4*ih/5"
+SCALE="${WIN_W}:-2"
+
 capture() {
     local dur="$1"
     N=$((N + 1))
@@ -105,46 +110,77 @@ capture() {
     printf 'file %s\nduration %s\n' "$f" "$dur" >> "$CONCAT"
 }
 
-set_state() {
-    local state="$1" spinner="${2:-}"
-    tmux set-option -w -t "${SESSION}:claude-hooks" @claude-state  "$state"  2>/dev/null || true
-    [[ -n "$spinner" ]] && \
-        tmux set-option -w -t "${SESSION}:claude-hooks" @claude-spinner "$spinner" 2>/dev/null || true
+# Set state on any named window
+set_win() {
+    local win="$1" state="$2" spinner="${3:-}"
+    tmux set-option -w -t "${SESSION}:${win}" @claude-state  "$state"  2>/dev/null || true
+    tmux set-option -w -t "${SESSION}:${win}" @claude-spinner "$spinner" 2>/dev/null || true
 }
 
-# Animation: idle → running (spinner) → permission → input → running → done → idle
-set_state "";          capture 1.0
+# ── Animation ─────────────────────────────────────────────────────────────────
+# Initial: claude-hooks=idle, api-server=done, payments=running, auth=idle, frontend=input
+capture 1.5
 
-set_state running "⬢"; capture 0.5
-set_state running "⬡"; capture 0.5
-set_state running "⬢"; capture 0.5
-set_state running "⬡"; capture 0.5
-set_state running "⬢"; capture 0.5
+# Payments finishes while frontend keeps waiting for user input
+set_win "payments" "done"       "";  capture 1.0
 
-set_state permission;  capture 1.5
-set_state input;       capture 1.5
+# claude-hooks starts a new Claude session — spinner animates
+set_win "claude-hooks" "running" "⬢"; capture 0.8
+set_win "claude-hooks" "running" "⬡"; capture 0.8
+set_win "claude-hooks" "running" "⬢"; capture 0.8
+set_win "claude-hooks" "running" "⬡"; capture 0.8
 
-set_state running "⬢"; capture 0.5
-set_state running "⬡"; capture 0.5
-set_state running "⬢"; capture 0.5
+# claude-hooks needs permission to run a command; api-server also kicks off a task
+set_win "api-server"   "running" "⬢"
+set_win "claude-hooks" "permission" "";  capture 2.0
 
-set_state done;        capture 1.8
-set_state "";          capture 1.0
+# User clicks the notification → focuses terminal, responds to frontend question too
+set_win "frontend" "running" "⬡"
+set_win "claude-hooks" "input" "";  capture 1.8
+
+# All three resume running — spinners tick in sync
+set_win "claude-hooks" "running" "⬢"; set_win "frontend" "running" "⬢"; set_win "api-server" "running" "⬢"; capture 0.8
+set_win "claude-hooks" "running" "⬡"; set_win "frontend" "running" "⬡"; set_win "api-server" "running" "⬡"; capture 0.8
+set_win "claude-hooks" "running" "⬢"; set_win "frontend" "running" "⬢"; set_win "api-server" "running" "⬢"; capture 0.8
+
+# claude-hooks finishes first
+set_win "claude-hooks" "done" "";  capture 1.8
+
+# frontend and api-server finish
+set_win "frontend" "done" ""; set_win "api-server" "done" "";  capture 1.2
+
+# Everything settles back to idle
+set_win "claude-hooks" "" ""; set_win "frontend" "" ""; set_win "api-server" "" "";  capture 1.5
 
 # ffmpeg concat requires the last frame to be duplicated for its duration to apply
 printf 'file %s\nduration 0.1\n' "$FRAMES/$(printf '%04d' $N).png" >> "$CONCAT"
 
-# ── 5. Close Alacritty (killing session exits tmux attach → window closes) ───
+# ── 4a. Per-state screenshots for README ─────────────────────────────────────
+# Neutral context: api-server=done, everything else idle, claude-hooks=each state
+set_win "api-server" "done" ""; set_win "payments" "" ""; set_win "auth" "" ""; set_win "frontend" "" ""
+
+snap() {
+    local name="$1"
+    tmux refresh-client -t "$SESSION" -S 2>/dev/null || true
+    sleep 0.25
+    local raw="$FRAMES/snap.png"
+    screencapture -x -R "${WIN_X},${WIN_Y},${WIN_W},${WIN_H}" "$raw"
+    ffmpeg -y -i "$raw" -vf "${CROP}" "$REPO/screenshots/state-${name}.png" 2>/dev/null
+}
+
+set_win "claude-hooks" ""           ""; snap "idle"
+set_win "claude-hooks" "running"    "⬢"; snap "running"
+set_win "claude-hooks" "permission" ""; snap "permission"
+set_win "claude-hooks" "input"      ""; snap "input"
+set_win "claude-hooks" "done"       ""; snap "done"
+
+# ── 5. Close Alacritty ────────────────────────────────────────────────────────
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 wait "$ALACRITTY_PID" 2>/dev/null || true
 
 # ── 6. Two-pass GIF encode ────────────────────────────────────────────────────
 echo "Rendering GIF…"
 PALETTE="$FRAMES/palette.png"
-# Scale to logical width (WIN_W from CoreGraphics = points, works on Retina and non-Retina).
-# Crop to the status bar: it sits at the bottom of the window, ~1/5 of total height (lines=5).
-SCALE="${WIN_W}:-2"
-CROP="crop=iw:ih/5:0:4*ih/5"
 
 ffmpeg -y -f concat -safe 0 -i "$CONCAT" \
     -vf "fps=10,scale=${SCALE}:flags=lanczos,${CROP},palettegen=stats_mode=full" \
@@ -155,3 +191,4 @@ ffmpeg -y -f concat -safe 0 -i "$CONCAT" -i "$PALETTE" \
     "$OUT" 2>/dev/null
 
 echo "Done → $OUT"
+echo "State screenshots → screenshots/state-*.png"
