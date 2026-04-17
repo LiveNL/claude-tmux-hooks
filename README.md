@@ -2,7 +2,7 @@
 
 Per-window Claude Code status in your tmux tab bar — animated indicator, event-driven, zero polling.
 
-![tmux window titles showing Claude state indicators](screenshots/tmux-window-titles.jpeg)
+![Demo: Claude state cycling through running → permission → input → done across three tmux windows](screenshots/demo.gif)
 
 Open five Claude sessions in five windows. Each tab tracks its own state, live:
 
@@ -14,7 +14,7 @@ Open five Claude sessions in five windows. Each tab tracks its own state, live:
 | done | `✓` | green | Claude finished without a question |
 | *(idle)* | — | dim | No active Claude session |
 
-On macOS you also get desktop notifications:
+On macOS you also get desktop notifications via `osascript`:
 
 ![macOS notification for permission request](screenshots/notification.jpeg)
 
@@ -39,7 +39,13 @@ The installer:
 - [jq](https://stedolan.github.io/jq/)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
 
-macOS notifications use `osascript` — no extra packages needed. On other platforms they are silently skipped.
+macOS notifications use `osascript` — no extra packages needed. Install [`alerter`](https://github.com/vjeantet/alerter) to make notifications **clickable**: clicking one focuses your terminal and switches directly to the tmux window where Claude is running.
+
+```bash
+brew install vjeantet/tap/alerter
+```
+
+On other platforms notifications are silently skipped.
 
 ## tmux setup
 
@@ -78,6 +84,8 @@ The animated spinner is a lightweight background process that writes a new frame
 **Colors:** Edit `tmux/claude-state.conf` and replace the named colors (`cyan`, `yellow`, `red`, `green`) with your theme's values (e.g. `colour14`, `#fabd2f`).
 
 **Spinner frames:** Edit the `frames=(⬢ ⬡)` array in `hooks/busy-window.sh` — any Unicode glyphs work.
+
+**Clickable notifications:** Install `alerter` (`brew install vjeantet/tap/alerter`). When present, clicking a notification focuses your terminal and switches to the right tmux window automatically.
 
 **Desktop notifications:** Set `CAN_NOTIFY="0"` near the top of `hooks/notify.sh` to disable, or swap `notify_macos` for `notify-send`/`paplay` for Linux.
 
