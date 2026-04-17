@@ -45,6 +45,10 @@ padding     = { x = 0, y = 0 }
 
 [font]
 size = 13.0
+
+[font.normal]
+family = "LiterationMono Nerd Font"
+style  = "Book"
 TOML
 
 alacritty --config-file "$ALACRITTY_CFG" \
