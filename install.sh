@@ -32,7 +32,7 @@ done
 bold "1. Installing hooks"
 mkdir -p "$HOOKS_DEST"
 
-for hook in busy-window.sh continue-window.sh notify.sh permission-window.sh reset-window.sh spinner.sh; do
+for hook in busy-window.sh continue-window.sh notify.sh permission-window.sh reset-window.sh; do
     cp "$SCRIPT_DIR/hooks/$hook" "$HOOKS_DEST/$hook"
     chmod +x "$HOOKS_DEST/$hook"
     ok "Installed $HOOKS_DEST/$hook"
